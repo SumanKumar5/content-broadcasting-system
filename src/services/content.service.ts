@@ -6,7 +6,7 @@ import {
 
 export const uploadContent = async (
   input: UploadContentInput,
-  file: Express.Multer.File,
+  file: any,
   teacherId: string,
 ) => {
   const fileUrl =
