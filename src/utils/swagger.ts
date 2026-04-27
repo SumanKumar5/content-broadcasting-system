@@ -11,12 +11,12 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:3000/api",
-        description: "Local Development Server",
+        url: "https://content-broadcasting-system-c3xf.onrender.com/api",
+        description: "Production Server",
       },
       {
-        url: "https://your-production-url.onrender.com/api",
-        description: "Production Server",
+        url: "http://localhost:3000/api",
+        description: "Local Development Server",
       },
     ],
     components: {
