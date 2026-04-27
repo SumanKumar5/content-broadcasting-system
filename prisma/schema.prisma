@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime  @default(now())
+
+  uploadedContent Content[] @relation("UploadedBy")
+  approvedContent Content[] @relation("ApprovedBy")
+}
+
+enum Role {
+  principal
+  teacher
+}
+
+model Content {
+  id              String        @id @default(uuid())
+  title           String
+  description     String?
+  subject         String
+  fileUrl         String
+  fileType        String
+  fileSize        Int
+  status          ContentStatus @default(pending)
+  rejectionReason String?
+  startTime       DateTime?
+  endTime         DateTime?
+  createdAt       DateTime      @default(now())
+
+  uploadedBy String
+  approvedBy String?
+  approvedAt DateTime?
+
+  uploader  User  @relation("UploadedBy", fields: [uploadedBy], references: [id])
+  approver  User? @relation("ApprovedBy", fields: [approvedBy], references: [id])
+
+  schedules ContentSchedule[]
+}
+
+enum ContentStatus {
+  pending
+  approved
+  rejected
+}
+
+model ContentSlot {
+  id        String   @id @default(uuid())
+  subject   String
+  teacherId String
+  createdAt DateTime @default(now())
+
+  schedules ContentSchedule[]
+
+  @@unique([subject, teacherId])
+}
+
+model ContentSchedule {
+  id            String   @id @default(uuid())
+  contentId     String
+  slotId        String
+  rotationOrder Int
+  duration      Int
+  createdAt     DateTime @default(now())
+
+  content Content     @relation(fields: [contentId], references: [id])
+  slot    ContentSlot @relation(fields: [slotId], references: [id])
+}

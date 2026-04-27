@@ -1,0 +1,88 @@
+CONTENT BROADCASTING SYSTEM - ARCHITECTURE NOTES
+=================================================
+
+1. AUTHENTICATION & RBAC FLOW
+------------------------------
+- JWT-based authentication is used across all protected routes.
+- On login or register, the server signs a JWT containing the user's id and role.
+- The authenticate middleware extracts and verifies the token from the Authorization header.
+- The authorize middleware checks the user's role against the allowed roles for that route.
+- Principals and teachers have strictly separated permissions with no overlap.
+- Passwords are hashed using bcrypt with a salt round of 10 before storage.
+
+2. SUBJECT-BASED SYSTEM DESIGN
+--------------------------------
+- Each teacher can have multiple subjects.
+- Each subject for a teacher maps to a ContentSlot record (unique per subject+teacher pair).
+- Content is linked to a slot via ContentSchedule with a rotation order and duration.
+- This allows independent rotation per subject per teacher.
+- The public API groups live content by subject and returns one active item per subject.
+
+3. UPLOAD HANDLING APPROACH
+-----------------------------
+- Multer is used as the multipart form-data parser.
+- Files are validated by mimetype (jpg, png, gif only) and size (max 10MB).
+- Accepted files are stored in the local uploads/ directory with a unique timestamped filename.
+- The file URL is stored in the Content record and served via Express static middleware.
+- If S3 integration is needed, only the storage engine in fileUpload.ts needs to be swapped.
+
+4. APPROVAL WORKFLOW DESIGN
+-----------------------------
+- All uploaded content starts in pending status.
+- Only a principal can approve or reject pending content.
+- Rejected content stores a rejection reason visible to the teacher.
+- Only approved content is eligible for the public broadcasting API.
+- Approved content still requires a valid time window to be shown publicly.
+
+5. SCHEDULING & ROTATION LOGIC
+--------------------------------
+- Teachers define startTime, endTime, and duration (in minutes) per content item.
+- Content is only eligible for rotation if the current time falls within its startTime and endTime window.
+- Eligible content items for a subject are sorted by rotationOrder.
+- The total cycle duration is the sum of all eligible content durations for that subject.
+- Elapsed minutes since the earliest startTime is calculated and taken modulo total cycle duration.
+- The content item whose cumulative duration covers that position in the cycle is returned as active.
+- This produces a seamless, continuous, time-deterministic rotation without any background jobs.
+
+6. DATABASE DESIGN DECISIONS
+------------------------------
+- Users table stores both principals and teachers differentiated by a role enum.
+- Content table stores all metadata including approval state, file info, and scheduling window.
+- ContentSlot groups content by subject and teacher, acting as the rotation container.
+- ContentSchedule is the join table between Content and ContentSlot with rotation order and duration.
+- UUIDs are used as primary keys for all tables to avoid enumeration attacks.
+- Prisma ORM is used for type-safe database access and migration management.
+
+7. FOLDER STRUCTURE
+---------------------
+src/
+  controllers/   - Route handler functions, input parsing, response sending
+  routes/        - Express router definitions, middleware chaining
+  services/      - Core business logic, database queries
+  middlewares/   - authenticate, authorize, errorHandler, notFound
+  models/        - Prisma client instance
+  utils/         - JWT helpers, response helpers, file upload config
+  validations/   - Zod schemas for request validation
+prisma/
+  schema.prisma  - Database schema and model definitions
+  migrations/    - Auto-generated SQL migration files
+
+8. MIDDLEWARE USAGE
+--------------------
+- cors: Allows cross-origin requests from any client.
+- express.json: Parses JSON request bodies.
+- express.static: Serves uploaded files from the uploads/ directory.
+- authenticate: Verifies JWT and attaches user to the request object.
+- authorize: Checks user role against allowed roles for the route.
+- errorHandler: Catches unhandled errors and returns a clean 500 response.
+- notFound: Catches undefined routes and returns a 404 response.
+- multer: Handles file uploads with validation before the controller runs.
+
+9. SCALABILITY APPROACH
+-------------------------
+- Redis can be added to cache /content/live responses per teacher with a short TTL (e.g. 30 seconds).
+- The scheduling algorithm is stateless and time-deterministic, making it safe to run across multiple instances.
+- File storage can be migrated to S3 by replacing the multer storage engine without changing any other code.
+- Rate limiting via express-rate-limit can be applied to the public API to prevent abuse.
+- Database connection pooling is handled automatically by the Prisma pg adapter.
+- The subject-slot architecture allows adding new subjects without any schema changes.
