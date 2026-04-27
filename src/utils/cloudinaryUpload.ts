@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -17,11 +17,7 @@ const storage = new CloudinaryStorage({
   } as object,
 });
 
-const fileFilter = (
-  req: Express.Request,
-  file: Express.Multer.File,
-  cb: multer.FileFilterCallback,
-) => {
+const fileFilter = (req: any, file: any, cb: any) => {
   const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
