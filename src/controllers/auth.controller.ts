@@ -7,7 +7,7 @@ export const register = async (req: Request, res: Response) => {
   const parsed = registerSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    return sendError(res, parsed.error.errors[0].message, 400);
+    return sendError(res, parsed.error.issues[0].message, 400);
   }
 
   try {
@@ -23,7 +23,7 @@ export const login = async (req: Request, res: Response) => {
   const parsed = loginSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    return sendError(res, parsed.error.errors[0].message, 400);
+    return sendError(res, parsed.error.issues[0].message, 400);
   }
 
   try {

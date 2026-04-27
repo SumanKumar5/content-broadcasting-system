@@ -14,6 +14,12 @@ import {
   uploadContentSchema,
 } from "../validations/content.validation";
 
+const asString = (val: unknown): string | undefined => {
+  if (typeof val === "string") return val;
+  if (Array.isArray(val)) return val[0] as string;
+  return undefined;
+};
+
 export const handleUpload = async (req: AuthRequest, res: Response) => {
   if (!req.file) {
     return sendError(res, "File is required", 400);
@@ -24,7 +30,7 @@ export const handleUpload = async (req: AuthRequest, res: Response) => {
   if (!parsed.success) {
     return sendError(
       res,
-      parsed.error.errors.map((e) => e.message).join(", "),
+      parsed.error.issues.map((e) => e.message).join(", "),
       400,
     );
   }
@@ -39,14 +45,16 @@ export const handleUpload = async (req: AuthRequest, res: Response) => {
 };
 
 export const handleGetMyContent = async (req: AuthRequest, res: Response) => {
-  const { subject, status, page, limit } = req.query;
-
   try {
     const result = await getMyContent(req.user!.id, {
-      subject: subject as string,
-      status: status as string,
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
+      subject: asString(req.query.subject),
+      status: asString(req.query.status),
+      page: req.query.page
+        ? parseInt(asString(req.query.page) as string)
+        : undefined,
+      limit: req.query.limit
+        ? parseInt(asString(req.query.limit) as string)
+        : undefined,
     });
     return sendSuccess(res, result, "Content fetched successfully");
   } catch (err: unknown) {
@@ -57,15 +65,17 @@ export const handleGetMyContent = async (req: AuthRequest, res: Response) => {
 };
 
 export const handleGetAllContent = async (req: AuthRequest, res: Response) => {
-  const { subject, teacherId, status, page, limit } = req.query;
-
   try {
     const result = await getAllContent({
-      subject: subject as string,
-      teacherId: teacherId as string,
-      status: status as string,
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
+      subject: asString(req.query.subject),
+      teacherId: asString(req.query.teacherId),
+      status: asString(req.query.status),
+      page: req.query.page
+        ? parseInt(asString(req.query.page) as string)
+        : undefined,
+      limit: req.query.limit
+        ? parseInt(asString(req.query.limit) as string)
+        : undefined,
     });
     return sendSuccess(res, result, "All content fetched successfully");
   } catch (err: unknown) {
@@ -79,12 +89,14 @@ export const handleGetPendingContent = async (
   req: AuthRequest,
   res: Response,
 ) => {
-  const { page, limit } = req.query;
-
   try {
     const result = await getPendingContent({
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
+      page: req.query.page
+        ? parseInt(asString(req.query.page) as string)
+        : undefined,
+      limit: req.query.limit
+        ? parseInt(asString(req.query.limit) as string)
+        : undefined,
     });
     return sendSuccess(res, result, "Pending content fetched successfully");
   } catch (err: unknown) {
@@ -96,7 +108,8 @@ export const handleGetPendingContent = async (
 
 export const handleApprove = async (req: AuthRequest, res: Response) => {
   try {
-    const content = await approveContent(req.params.id, req.user!.id);
+    const contentId = req.params.id as string;
+    const content = await approveContent(contentId, req.user!.id);
     return sendSuccess(res, content, "Content approved successfully");
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Approval failed";
@@ -108,15 +121,12 @@ export const handleReject = async (req: AuthRequest, res: Response) => {
   const parsed = rejectContentSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    return sendError(res, parsed.error.errors[0].message, 400);
+    return sendError(res, parsed.error.issues[0].message, 400);
   }
 
   try {
-    const content = await rejectContent(
-      req.params.id,
-      req.user!.id,
-      parsed.data,
-    );
+    const contentId = req.params.id as string;
+    const content = await rejectContent(contentId, req.user!.id, parsed.data);
     return sendSuccess(res, content, "Content rejected successfully");
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Rejection failed";

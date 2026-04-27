@@ -205,7 +205,7 @@ createdAt      DateTime
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/content-broadcasting-system.git
+   git clone https://github.com/SumanKumar5/content-broadcasting-system.git
    cd content-broadcasting-system
    ```
 
