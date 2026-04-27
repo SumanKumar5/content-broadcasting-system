@@ -4,6 +4,7 @@ import { sendError } from "../utils/response";
 
 export interface AuthRequest extends Request {
   user?: { id: string; role: string };
+  file?: Express.Multer.File;
 }
 
 export const authenticate = (
